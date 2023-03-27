@@ -4,38 +4,42 @@ fn read(y: bool) {}
 fn main() {
     read(x);
     let x = true;
-  
+
     let x = true;
     read(x);
 }
 ```
+
 - This will throw errors (and the program is unsafe) because read() fn expects x to be a bool, but x hasn't been defined on line 4. the right way is after line 7 ad 8.
 
------
+---
 
 ```rust
-fn main() {  
-    let first = String::from("Ferris");  
-    let full = add_suffix(first);  
-    println!("{full}");  
-    }  
+fn main() {
+    let first = String::from("Ferris");
+    let full = add_suffix(first);
+    println!("{full}");
+    }
 fn add_suffix(mut name: String) -> String {
     name.push_str(" Jr.");
     name
     }
 ```
+
 1. At L1, the string `"Ferris"` has been allocated on the heap. It is owned by `first`.
 2. At L2, the function `add_suffix(first)` has been called. This moves ownership of the string from first to name. The string data is not copied, but the pointer to the data is copied.
 3. At L3, the function `name.push_str(" Jr.")` resizes the string's heap allocation. This frees the original heap memory, creates a new allocation, and writes `"Ferris Jr."` into the new location. first now points to deallocated memory.
 4. At L4, the frame for `add_suffix` is gone. This function returned name, transferring ownership of the string to `full`.
 
 ##### Summary upto now
+
 - All heap data must be owned by exactly one variable.
 - Rust deallocates heap data once its owner goes out of scope.
 - Ownership can be transferred by moves, which happen on assignments and function calls.
 - Heap data can only be accessed through its current owner, not a previous owner.
 
 ## References and Borrowing
+
 ```rust
     fn main() {
     let m1 = String::from("Hello");
@@ -47,7 +51,9 @@ fn add_suffix(mut name: String) -> String {
     println!("{} {}!", g1, g2);
     }
 ```
-`greet` moves the strings from `m1` and `m2` into the parameters of `greet` and thus cannot be used within the `main`. In case we want to read these *strings* twice, we can do the following:
+
+`greet` moves the strings from `m1` and `m2` into the parameters of `greet` and thus cannot be used within the `main`. In case we want to read these _strings_ twice, we can do the following:
+
 ```rust
     fn main() {
     let m1 = String::from("Hello");
@@ -60,8 +66,10 @@ fn add_suffix(mut name: String) -> String {
     (g1, g2)
     }
 ```
+
 Here, we are returning the ownership of both the strings to `m1_new` and `m2_new`. However, this style of program is quite verbose. Rust provides a more concise style of reading and writing without moves through references.
 **References** are kind of pointers here. Here's an example:
+
 ```rust
     fn main() {
     let m1 = String::from("Hello");
@@ -73,11 +81,13 @@ Here, we are returning the ownership of both the strings to `m1_new` and `m2_new
     println!("{} {}!", g1, g2);
     }
 ```
+
 `&m1` creates a reference to `m1`. The type of the `greet` parameter `g1` is changed to `&String`, meaning "a reference to a String". `g1` in `greet` is a pointer to `m1` (which is on the stack) that containg the string "Hello" (which is on the heap).
-While `m1` owns the heap data "Hello", `g1` does not own either `m1` or "Hello". Therefore after greet ends, no heap data has been deallocated. Only the stack frame for greet disappears. This fact is consistent with our *Moved Heap Data Principle*: because `g1` did not own "Hello", Rust did not deallocate "Hello" on behalf of `g1`.
+While `m1` owns the heap data "Hello", `g1` does not own either `m1` or "Hello". Therefore after greet ends, no heap data has been deallocated. Only the stack frame for greet disappears. This fact is consistent with our _Moved Heap Data Principle_: because `g1` did not own "Hello", Rust did not deallocate "Hello" on behalf of `g1`.
 Thus, references are **non-owning pointers**, because they do not own the data they point to.
 
 ## Dereferences
+
 ```rust
 let x: Box<i32> = Box::new(-1);
 let x_abs1 = i32::abs(*x); // explicit dereference
@@ -94,9 +104,12 @@ let s_len1 = str::len(&s); // explicit reference
 let s_len2 = s.len();      // implicit reference
 assert_eq!(s_len1, s_len2);
 ```
+
 ## Slices
-*Slices* let you reference a contiguous sequence of elements in a collection rather than the whole collection. A slice is a kind of reference, so it does not have ownership.
+
+_Slices_ let you reference a contiguous sequence of elements in a collection rather than the whole collection. A slice is a kind of reference, so it does not have ownership.
 **Problem: write a function that takes a string of words separated by spaces and returns the first word it finds in that string?**
+
 ```rust
 fn first_word(s: &String) -> usize {
     let bytes = s.as_bytes();
@@ -115,6 +128,72 @@ fn main() {
     s.clear();
 }
 ```
+
 `as_bytes` converts the string into a byte array. `enumerate` creates an iterator that returns a tuple where the first element is the index and the second element is a reference to the element. `iter` creates an iterator over the slice, thats why we used `i` and `&item`. Inside the loop, we check if the byte is a space using the byte literal syntax, which is `b' '`. If it is, we return the index. If we don't find a space, we return the length of the string. We could use `word` with value `5` after `s.clear()` and use it with `s` to get the first word. But this will be a bug because `s` is changed after `word` gets a `5` value, plus the function `first_word` gets complicated if we need to use second string. In rust, we can use slices to solve this problem.
+
+## String Slices
+
 ```rust
-## StringSlices
+let s = String::from("hello world");
+
+let hello = &s[0..5]; //start index is 0 and end index is 5
+let world = &s[6..11]; //start index is 6 and end index is 11
+//end index is one more than the last character
+```
+
+`world` is a slice that contains a pointer to the byte at index `6` of `s` with a length value of `5`. Also,
+
+```rust
+let s = String::from("hello");
+// these are same
+let slice = &s[0..2];
+let slice = &s[..2];
+//these too
+let len = s.len();
+let slice = &s[3..len];
+let slice = &s[3..];
+//these too
+let slice = &s[0..len];
+let slice = &s[..];
+```
+Now we can do this:
+```rust
+fn first_word(s: &String) -> &str {
+    let bytes = s.as_bytes();
+
+    for(i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+    &s[..]
+}
+fn main() {
+    let mut s = String::from("hello world");
+
+    let word = first_word(&s);
+    s.clear();
+    println!("the first word is: {}", word);
+}
+```
+Because `clear` needs to `truncate` the String, it needs to get a mutable reference. The `println!` after the call to `clear` uses the reference in word, so the immutable reference must still be active at that point. Rust disallows the mutable reference in `clear` and the immutable reference in `word` from existing at the same time, and compilation fails.
+```rust
+  let my_string = String::from("hello world");
+
+    // `first_word` works on slices of `String`s, whether partial or whole
+    let word = first_word(&my_string[0..6]);
+    let word = first_word(&my_string[..]);
+    // `first_word` also works on references to `String`s, which are equivalent
+    // to whole slices of `String`s
+    let word = first_word(&my_string);
+
+    let my_string_literal = "hello world";
+
+    // `first_word` works on slices of string literals, whether partial or whole
+    let word = first_word(&my_string_literal[0..6]);
+    let word = first_word(&my_string_literal[..]);
+
+    // Because string literals *are* string slices already,
+    // this works too, without the slice syntax!
+    let word = first_word(my_string_literal);
+```

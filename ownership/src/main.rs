@@ -1,10 +1,17 @@
-fn read(y: bool) {}
+fn first_word(s: &String) -> usize {
+    let bytes = s.as_bytes();
 
+    for(i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return i;
+        }
+    }
+    s.len()
+}
 fn main() {
-    read(x);
-    let x = true;
-    // this will throw errors (and the prpgram is unsafe) because read() fn expects x to be a bool, but x hasn't been defined on line 4. the right way is:
-    let x = true;
-    read(x);
+    let mut s = String::from("hello world");
+
+    let word = first_word(&s);
+    s.clear();
 }
 

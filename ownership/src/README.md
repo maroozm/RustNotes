@@ -94,4 +94,27 @@ let s_len1 = str::len(&s); // explicit reference
 let s_len2 = s.len();      // implicit reference
 assert_eq!(s_len1, s_len2);
 ```
+## Slices
+*Slices* let you reference a contiguous sequence of elements in a collection rather than the whole collection. A slice is a kind of reference, so it does not have ownership.
+**Problem: write a function that takes a string of words separated by spaces and returns the first word it finds in that string?**
+```rust
+fn first_word(s: &String) -> usize {
+    let bytes = s.as_bytes();
 
+    for(i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return i;
+        }
+    }
+    s.len()
+}
+fn main() {
+    let mut s = String::from("hello world");
+
+    let word = first_word(&s);
+    s.clear();
+}
+```
+`as_bytes` converts the string into a byte array. `enumerate` creates an iterator that returns a tuple where the first element is the index and the second element is a reference to the element. `iter` creates an iterator over the slice, thats why we used `i` and `&item`. Inside the loop, we check if the byte is a space using the byte literal syntax, which is `b' '`. If it is, we return the index. If we don't find a space, we return the length of the string. We could use `word` with value `5` after `s.clear()` and use it with `s` to get the first word. But this will be a bug because `s` is changed after `word` gets a `5` value, plus the function `first_word` gets complicated if we need to use second string. In rust, we can use slices to solve this problem.
+```rust
+## StringSlices
